@@ -5,29 +5,26 @@ import numpy as np
 def add_features(df):
     df = df.copy()
 
-    # Flatten columns if yfinance returns MultiIndex
+    # Flatten MultiIndex if exists
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
-    # Required columns
-    price_cols = ["Open", "High", "Low", "Close"]
-
-    for col in price_cols:
+    # Ensure numeric
+    for col in ["Open", "High", "Low", "Close", "Volume"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    # Volume is optional
-    if "Volume" in df.columns:
-        df["Volume"] = pd.to_numeric(df["Volume"], errors="coerce")
-    else:
-        df["Volume"] = 0
+        else:
+            df[col] = 0
 
     # Returns
     df["Return"] = df["Close"].pct_change()
 
-    # Moving averages
+    # SMA
     df["MA10"] = df["Close"].rolling(10).mean()
     df["MA50"] = df["Close"].rolling(50).mean()
+
+    # EMA
+    df["EMA20"] = df["Close"].ewm(span=20, adjust=False).mean()
 
     # Volatility
     df["Volatility"] = df["Return"].rolling(10).std()
@@ -43,9 +40,16 @@ def add_features(df):
     rs = avg_gain / avg_loss
     df["RSI"] = 100 - (100 / (1 + rs))
 
-    # Target (only used during training)
+    # Target for ML
     if "Target" not in df.columns:
         df["Target"] = (df["Close"].shift(-1) > df["Close"]).astype(int)
 
     df.dropna(inplace=True)
     return df
+
+
+if __name__ == "__main__":
+    df = pd.read_csv("data/stock_data.csv")
+    df = add_features(df)
+    df.to_csv("data/processed_data.csv", index=False)
+    print("Processed data saved to data/processed_data.csv")
