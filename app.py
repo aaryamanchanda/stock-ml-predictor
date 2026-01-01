@@ -17,7 +17,7 @@ st.set_page_config(
 st.title("📈 Stock Analysis Dashboard")
 st.write(
     "Interactive stock analysis dashboard with technical indicators and an "
-    "ML-based next-day trend prediction (educational use only)."
+    "ML-based next-day trend prediction ."
 )
 
 # -----------------------------
