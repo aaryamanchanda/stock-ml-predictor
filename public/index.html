@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Analysis Dashboard | ML-Powered Predictions</title>
+  <meta name="description" content="Interactive stock analysis dashboard with technical indicators and ML-based next-day trend prediction for any publicly traded stock." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #090d1a;
+      --surface:   #0f1629;
+      --surface2:  #151d36;
+      --border:    rgba(99,179,237,0.12);
+      --accent:    #63b3ed;
+      --accent2:   #9f7aea;
+      --green:     #48bb78;
+      --red:       #fc8181;
+      --text:      #e2e8f0;
+      --muted:     #718096;
+      --radius:    14px;
+      --glow:      0 0 24px rgba(99,179,237,0.18);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 60% 40% at 20% 0%, rgba(99,179,237,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(159,122,234,0.07) 0%, transparent 70%);
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      padding: 56px 24px 32px;
+      position: relative;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(99,179,237,0.12);
+      border: 1px solid rgba(99,179,237,0.25);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 100px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 800;
+      background: linear-gradient(135deg, #e2e8f0 0%, #63b3ed 60%, #9f7aea 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.15;
+    }
+    .subtitle {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 400;
+      max-width: 480px;
+      margin-inline: auto;
+      line-height: 1.6;
+    }
+
+    /* ── Main layout ─────────────────────────────────────────────────────── */
+    main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── Search bar ──────────────────────────────────────────────────────── */
+    .search-wrap {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 48px;
+    }
+    #tickerInput {
+      flex: 1;
+      max-width: 340px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 14px 20px;
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color .25s, box-shadow .25s;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    #tickerInput::placeholder { text-transform: none; letter-spacing: 0; color: var(--muted); }
+    #tickerInput:focus {
+      border-color: var(--accent);
+      box-shadow: var(--glow);
+    }
+    #analyzeBtn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #3182ce, #805ad5);
+      color: #fff;
+      border: none;
+      padding: 14px 28px;
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: transform .18s, box-shadow .18s, opacity .18s;
+      position: relative;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    #analyzeBtn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.08);
+      opacity: 0;
+      transition: opacity .18s;
+    }
+    #analyzeBtn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(49,130,206,0.35); }
+    #analyzeBtn:hover::before { opacity: 1; }
+    #analyzeBtn:active { transform: translateY(0); }
+    #analyzeBtn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    /* Spinner */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error banner ────────────────────────────────────────────────────── */
+    #errorBanner {
+      display: none;
+      background: rgba(252,129,129,0.1);
+      border: 1px solid rgba(252,129,129,0.3);
+      color: var(--red);
+      padding: 14px 20px;
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    /* ── Results area ────────────────────────────────────────────────────── */
+    #results { display: none; animation: fadeUp .45s ease both; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── Stat cards ──────────────────────────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: var(--glow); }
+    .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .card-value {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .card-value.green   { color: var(--green); }
+    .card-value.red     { color: var(--red); }
+    .card-value.accent  { color: var(--accent); }
+    .card-value.purple  { color: var(--accent2); }
+    .card-sub {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── Prediction panel ────────────────────────────────────────────────── */
+    .prediction-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+    .pred-icon {
+      font-size: 48px;
+      line-height: 1;
+      filter: drop-shadow(0 0 16px currentColor);
+    }
+    .pred-label  { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .pred-value  { font-size: 34px; font-weight: 800; }
+    .pred-value.up   { color: var(--green); }
+    .pred-value.down { color: var(--red); }
+    .confidence-bar-wrap { flex: 1; min-width: 200px; }
+    .confidence-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .confidence-bar {
+      height: 8px;
+      background: var(--surface2);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .confidence-fill {
+      height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, #3182ce, #805ad5);
+      transition: width 1s cubic-bezier(.25,.8,.25,1);
+    }
+    .threshold-note {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* ── Chart ───────────────────────────────────────────────────────────── */
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 0;
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+    #chartContainer { width: 100%; height: 480px; }
+
+    /* ── Download row ────────────────────────────────────────────────────── */
+    .dl-row { display: flex; justify-content: flex-end; }
+    #dlBtn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+    }
+    #dlBtn:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+
+    /* ── Footer ──────────────────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .search-wrap { flex-direction: column; }
+      #tickerInput { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">ML-Powered</div>
+    <h1>Stock Analysis Dashboard</h1>
+    <p class="subtitle">Real-time technical indicators and machine learning–based next-day trend prediction for any publicly traded stock.</p>
+  </header>
+
+  <main>
+    <!-- Search -->
+    <div class="search-wrap">
+      <input id="tickerInput" type="text" placeholder="Enter ticker: AAPL, MSFT, TSLA…" maxlength="10" value="AAPL" autocomplete="off" />
+      <button id="analyzeBtn" onclick="runAnalysis()">
+        <span class="spinner" id="spinner"></span>
+        <span id="btnText">⚡ Analyze</span>
+      </button>
+    </div>
+
+    <!-- Error -->
+    <div id="errorBanner"></div>
+
+    <!-- Results -->
+    <div id="results">
+
+      <!-- Stats -->
+      <p class="section-title">Performance Summary</p>
+      <div class="stats-grid">
+        <div class="card">
+          <div class="card-label">Current Price</div>
+          <div class="card-value accent" id="statPrice">—</div>
+          <div class="card-sub">USD</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Return</div>
+          <div class="card-value" id="statReturn">—</div>
+          <div class="card-sub">Since Jan 2018</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Avg Daily Volatility</div>
+          <div class="card-value purple" id="statVol">—</div>
+          <div class="card-sub">Std dev of daily returns (%)</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Model Accuracy</div>
+          <div class="card-value accent" id="statAcc">—</div>
+          <div class="card-sub">On held-out historical data</div>
+        </div>
+      </div>
+
+      <!-- Prediction -->
+      <p class="section-title">ML Prediction — Next Day</p>
+      <div class="prediction-card">
+        <div class="pred-icon" id="predIcon">—</div>
+        <div>
+          <div class="pred-label">Predicted Direction</div>
+          <div class="pred-value" id="predValue">—</div>
+        </div>
+        <div class="confidence-bar-wrap">
+          <div class="confidence-label">
+            <span>Confidence</span>
+            <span id="confLabel">0%</span>
+          </div>
+          <div class="confidence-bar">
+            <div class="confidence-fill" id="confFill" style="width:0%"></div>
+          </div>
+          <p class="threshold-note">Model predicts UP only when confidence &gt; 60% to reduce false signals.</p>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <p class="section-title">Price Chart &amp; Indicators</p>
+      <div class="chart-card">
+        <div id="chartContainer"></div>
+      </div>
+
+      <!-- Download -->
+      <div class="dl-row">
+        <button id="dlBtn" onclick="downloadCSV()">📥 Download Data CSV</button>
+      </div>
+
+    </div><!-- /results -->
+  </main>
+
+  <footer>
+    Stock Analysis Dashboard · Powered by ML &amp; yfinance · Not financial advice.
+  </footer>
+
+  <script>
+    let lastData = null;
+
+    // Allow Enter key
+    document.getElementById('tickerInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') runAnalysis();
+    });
+
+    async function runAnalysis() {
+      const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+      if (!ticker) return;
+
+      setLoading(true);
+      hideError();
+      document.getElementById('results').style.display = 'none';
+
+      try {
+        const res = await fetch(`/api/analyze?ticker=${encodeURIComponent(ticker)}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.detail || 'An error occurred. Please try again.');
+          return;
+        }
+
+        lastData = data;
+        renderResults(data);
+      } catch (err) {
+        showError('Network error — could not reach the analysis API.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function renderResults(d) {
+      // Stats
+      document.getElementById('statPrice').textContent = `$${d.current_price.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+      const ret = d.total_return;
+      const retEl = document.getElementById('statReturn');
+      retEl.textContent = `${ret >= 0 ? '+' : ''}${ret.toFixed(2)}%`;
+      retEl.className = `card-value ${ret >= 0 ? 'green' : 'red'}`;
+
+      document.getElementById('statVol').textContent = `${d.volatility.toFixed(2)}%`;
+      document.getElementById('statAcc').textContent = d.accuracy !== null ? `${d.accuracy.toFixed(2)}%` : 'N/A';
+
+      // Prediction
+      const up = d.prediction === 'UP';
+      document.getElementById('predIcon').textContent = up ? '📈' : '📉';
+      const pv = document.getElementById('predValue');
+      pv.textContent = up ? '▲ UP' : '▼ DOWN';
+      pv.className = `pred-value ${up ? 'up' : 'down'}`;
+
+      const pct = (d.confidence * 100).toFixed(1);
+      document.getElementById('confLabel').textContent = `${pct}%`;
+      setTimeout(() => {
+        document.getElementById('confFill').style.width = `${pct}%`;
+      }, 80);
+
+      // Chart
+      renderChart(d);
+
+      // Show
+      const resultsEl = document.getElementById('results');
+      resultsEl.style.display = 'block';
+      // Re-trigger animation
+      resultsEl.style.animation = 'none';
+      resultsEl.offsetHeight; // reflow
+      resultsEl.style.animation = '';
+    }
+
+    function renderChart(d) {
+      const PLOTLY_BG   = '#0f1629';
+      const PLOTLY_GRID = 'rgba(99,179,237,0.08)';
+
+      const candlestick = {
+        type: 'candlestick',
+        x: d.dates,
+        open:  d.open,
+        high:  d.high,
+        low:   d.low,
+        close: d.close,
+        name: d.ticker,
+        increasing: { line: { color: '#48bb78', width: 1 }, fillcolor: '#48bb78' },
+        decreasing: { line: { color: '#fc8181', width: 1 }, fillcolor: '#fc8181' },
+      };
+
+      const sma10 = {
+        type: 'scatter',
+        x: d.dates,
+        y: d.ma10,
+        name: 'SMA 10',
+        line: { color: '#63b3ed', width: 1.5 },
+        hovertemplate: 'SMA 10: $%{y:.2f}<extra></extra>',
+      };
+
+      const ema20 = {
+        type: 'scatter',
+        x: d.dates,
+        y: d.ema20,
+        name: 'EMA 20',
+        line: { color: '#9f7aea', width: 1.5, dash: 'dot' },
+        hovertemplate: 'EMA 20: $%{y:.2f}<extra></extra>',
+      };
+
+      const layout = {
+        paper_bgcolor: PLOTLY_BG,
+        plot_bgcolor:  PLOTLY_BG,
+        font: { family: 'Inter, sans-serif', color: '#a0aec0', size: 12 },
+        xaxis: {
+          rangeslider: { visible: false },
+          gridcolor: PLOTLY_GRID,
+          linecolor: PLOTLY_GRID,
+          tickfont: { size: 11 },
+          type: 'date',
+        },
+        yaxis: {
+          gridcolor: PLOTLY_GRID,
+          linecolor: PLOTLY_GRID,
+          tickprefix: '$',
+          tickfont: { size: 11 },
+          side: 'right',
+        },
+        legend: {
+          bgcolor: 'rgba(15,22,41,0.8)',
+          bordercolor: 'rgba(99,179,237,0.15)',
+          borderwidth: 1,
+          font: { size: 12 },
+          x: 0.01, y: 0.99,
+          xanchor: 'left', yanchor: 'top',
+        },
+        margin: { l: 16, r: 72, t: 20, b: 40 },
+        hovermode: 'x unified',
+      };
+
+      Plotly.newPlot('chartContainer', [candlestick, sma10, ema20], layout, {
+        responsive: true,
+        displayModeBar: true,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+        displaylogo: false,
+      });
+    }
+
+    function downloadCSV() {
+      if (!lastData) return;
+      const d = lastData;
+      const rows = [['Date','Open','High','Low','Close','MA10','EMA20']];
+      for (let i = 0; i < d.dates.length; i++) {
+        rows.push([d.dates[i], d.open[i], d.high[i], d.low[i], d.close[i], d.ma10[i], d.ema20[i]]);
+      }
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'), { href: url, download: `${d.ticker}_analysis.csv` });
+      a.click(); URL.revokeObjectURL(url);
+    }
+
+    function setLoading(on) {
+      document.getElementById('spinner').style.display = on ? 'block' : 'none';
+      document.getElementById('btnText').textContent = on ? 'Analyzing…' : '⚡ Analyze';
+      document.getElementById('analyzeBtn').disabled = on;
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorBanner');
+      el.textContent = `⚠️ ${msg}`;
+      el.style.display = 'block';
+    }
+
+    function hideError() {
+      document.getElementById('errorBanner').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
