@@ -6,153 +6,186 @@
   <title>Stock Analysis Dashboard | ML-Powered Predictions</title>
   <meta name="description" content="Interactive stock analysis dashboard with technical indicators and ML-based next-day trend prediction for any publicly traded stock." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #090d1a;
-      --surface:   #0f1629;
-      --surface2:  #151d36;
-      --border:    rgba(99,179,237,0.12);
-      --accent:    #63b3ed;
-      --accent2:   #9f7aea;
-      --green:     #48bb78;
-      --red:       #fc8181;
-      --text:      #e2e8f0;
-      --muted:     #718096;
-      --radius:    14px;
-      --glow:      0 0 24px rgba(99,179,237,0.18);
+      --bg:          #000000;
+      --bg-elevated: #1c1c1e;
+      --bg-glass:    rgba(28,28,30,0.72);
+      --bg-glass2:   rgba(44,44,46,0.5);
+      --border:      rgba(255,255,255,0.08);
+      --border-hover:rgba(255,255,255,0.15);
+      --text:        #f5f5f7;
+      --text-secondary: rgba(255,255,255,0.55);
+      --text-tertiary:  rgba(255,255,255,0.35);
+      --blue:        #0a84ff;
+      --green:       #30d158;
+      --red:         #ff453a;
+      --orange:      #ff9f0a;
+      --purple:      #bf5af2;
+      --teal:        #64d2ff;
+      --radius:      16px;
+      --radius-sm:   12px;
+      --radius-xs:   8px;
     }
 
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      background-image:
-        radial-gradient(ellipse 60% 40% at 20% 0%, rgba(99,179,237,0.07) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(159,122,234,0.07) 0%, transparent 70%);
+      overflow-x: hidden;
+    }
+
+    /* ── Ambient background ─────────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -40%; left: -20%;
+      width: 80%; height: 80%;
+      background: radial-gradient(circle, rgba(10,132,255,0.08) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -30%; right: -20%;
+      width: 70%; height: 70%;
+      background: radial-gradient(circle, rgba(191,90,242,0.06) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
     }
 
     /* ── Header ─────────────────────────────────────────────────────────── */
     header {
-      text-align: center;
-      padding: 56px 24px 32px;
       position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 72px 24px 48px;
+      max-width: 680px;
+      margin: 0 auto;
     }
-    header::after {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 120px; height: 2px;
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    }
-    .badge {
-      display: inline-block;
-      background: rgba(99,179,237,0.12);
-      border: 1px solid rgba(99,179,237,0.25);
-      color: var(--accent);
-      font-size: 11px;
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
       font-weight: 600;
-      letter-spacing: 2px;
+      letter-spacing: 1.2px;
       text-transform: uppercase;
-      padding: 4px 14px;
-      border-radius: 100px;
-      margin-bottom: 18px;
+      color: var(--blue);
+      margin-bottom: 20px;
+    }
+    .eyebrow::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--blue);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--blue);
     }
     h1 {
-      font-size: clamp(28px, 5vw, 48px);
+      font-size: clamp(32px, 6vw, 56px);
       font-weight: 800;
-      background: linear-gradient(135deg, #e2e8f0 0%, #63b3ed 60%, #9f7aea 100%);
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+      color: var(--text);
+    }
+    h1 span {
+      background: linear-gradient(135deg, var(--blue), var(--purple));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      line-height: 1.15;
     }
     .subtitle {
-      margin-top: 12px;
-      color: var(--muted);
-      font-size: 15px;
+      margin-top: 16px;
+      color: var(--text-secondary);
+      font-size: 17px;
       font-weight: 400;
-      max-width: 480px;
-      margin-inline: auto;
-      line-height: 1.6;
+      line-height: 1.55;
+      letter-spacing: -0.01em;
     }
 
     /* ── Main layout ─────────────────────────────────────────────────────── */
-    main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px 96px;
+    }
 
     /* ── Search bar ──────────────────────────────────────────────────────── */
     .search-wrap {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       justify-content: center;
-      margin-bottom: 48px;
+      margin-bottom: 56px;
     }
     #tickerInput {
-      flex: 1;
-      max-width: 340px;
-      background: var(--surface);
+      width: 280px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
       border: 1px solid var(--border);
       color: var(--text);
-      font-family: 'Inter', sans-serif;
+      font-family: inherit;
       font-size: 16px;
       font-weight: 500;
       padding: 14px 20px;
-      border-radius: var(--radius);
+      border-radius: var(--radius-sm);
       outline: none;
-      transition: border-color .25s, box-shadow .25s;
+      transition: border-color .3s, box-shadow .3s;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
     }
-    #tickerInput::placeholder { text-transform: none; letter-spacing: 0; color: var(--muted); }
+    #tickerInput::placeholder {
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text-tertiary);
+      font-weight: 400;
+    }
     #tickerInput:focus {
-      border-color: var(--accent);
-      box-shadow: var(--glow);
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(10,132,255,0.15);
     }
     #analyzeBtn {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: linear-gradient(135deg, #3182ce, #805ad5);
+      background: var(--blue);
       color: #fff;
       border: none;
       padding: 14px 28px;
-      border-radius: var(--radius);
+      border-radius: var(--radius-sm);
       font-size: 15px;
       font-weight: 600;
-      font-family: 'Inter', sans-serif;
+      font-family: inherit;
       cursor: pointer;
-      transition: transform .18s, box-shadow .18s, opacity .18s;
-      position: relative;
-      overflow: hidden;
+      transition: all .2s ease;
       white-space: nowrap;
+      letter-spacing: -0.01em;
     }
-    #analyzeBtn::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: rgba(255,255,255,0.08);
-      opacity: 0;
-      transition: opacity .18s;
+    #analyzeBtn:hover {
+      background: #409cff;
+      transform: scale(1.02);
     }
-    #analyzeBtn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(49,130,206,0.35); }
-    #analyzeBtn:hover::before { opacity: 1; }
-    #analyzeBtn:active { transform: translateY(0); }
-    #analyzeBtn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+    #analyzeBtn:active { transform: scale(0.98); }
+    #analyzeBtn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
     /* Spinner */
     .spinner {
-      width: 18px; height: 18px;
-      border: 2px solid rgba(255,255,255,0.3);
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.25);
       border-top-color: #fff;
       border-radius: 50%;
-      animation: spin .7s linear infinite;
+      animation: spin .65s linear infinite;
       display: none;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -160,122 +193,166 @@
     /* ── Error banner ────────────────────────────────────────────────────── */
     #errorBanner {
       display: none;
-      background: rgba(252,129,129,0.1);
-      border: 1px solid rgba(252,129,129,0.3);
+      background: rgba(255,69,58,0.1);
+      border: 1px solid rgba(255,69,58,0.2);
       color: var(--red);
       padding: 14px 20px;
-      border-radius: var(--radius);
+      border-radius: var(--radius-sm);
       margin-bottom: 24px;
       font-size: 14px;
       font-weight: 500;
       text-align: center;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
     }
 
     /* ── Results area ────────────────────────────────────────────────────── */
-    #results { display: none; animation: fadeUp .45s ease both; }
+    #results { display: none; animation: fadeUp .5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(18px); }
+      from { opacity: 0; transform: translateY(24px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    .section-title {
-      font-size: 13px;
+    .section-label {
+      font-size: 22px;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: var(--muted);
-      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 20px;
     }
 
     /* ── Stat cards ──────────────────────────────────────────────────────── */
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
-      margin-bottom: 32px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+    @media (max-width: 720px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
     }
     .card {
-      background: var(--surface);
+      background: var(--bg-glass);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 20px 24px;
-      transition: transform .2s, box-shadow .2s;
+      padding: 20px;
+      transition: border-color .3s, transform .25s;
     }
-    .card:hover { transform: translateY(-3px); box-shadow: var(--glow); }
+    .card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+    }
     .card-label {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
+      letter-spacing: 0.02em;
     }
     .card-value {
-      font-size: 28px;
-      font-weight: 800;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
       line-height: 1;
     }
-    .card-value.green   { color: var(--green); }
-    .card-value.red     { color: var(--red); }
-    .card-value.accent  { color: var(--accent); }
-    .card-value.purple  { color: var(--accent2); }
+    .card-value.blue   { color: var(--blue); }
+    .card-value.green  { color: var(--green); }
+    .card-value.red    { color: var(--red); }
+    .card-value.purple { color: var(--purple); }
+    .card-value.teal   { color: var(--teal); }
     .card-sub {
       margin-top: 6px;
-      font-size: 12px;
-      color: var(--muted);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-weight: 400;
     }
 
     /* ── Prediction panel ────────────────────────────────────────────────── */
     .prediction-card {
-      background: var(--surface);
+      background: var(--bg-glass);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 24px 28px;
+      padding: 28px;
       display: flex;
       align-items: center;
-      gap: 24px;
-      margin-bottom: 32px;
+      gap: 28px;
+      margin-bottom: 40px;
       flex-wrap: wrap;
+      transition: border-color .3s;
     }
+    .prediction-card:hover { border-color: var(--border-hover); }
     .pred-icon {
-      font-size: 48px;
-      line-height: 1;
-      filter: drop-shadow(0 0 16px currentColor);
+      width: 56px; height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
     }
-    .pred-label  { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-    .pred-value  { font-size: 34px; font-weight: 800; }
+    .pred-icon.up   { background: rgba(48,209,88,0.12); }
+    .pred-icon.down { background: rgba(255,69,58,0.12); }
+    .pred-info { flex-shrink: 0; }
+    .pred-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .pred-value {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
     .pred-value.up   { color: var(--green); }
     .pred-value.down { color: var(--red); }
-    .confidence-bar-wrap { flex: 1; min-width: 200px; }
-    .confidence-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
-    .confidence-bar {
-      height: 8px;
-      background: var(--surface2);
+    .confidence-wrap { flex: 1; min-width: 220px; }
+    .confidence-header {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .confidence-header .pct { color: var(--text); font-weight: 600; }
+    .confidence-track {
+      height: 6px;
+      background: rgba(255,255,255,0.06);
       border-radius: 100px;
       overflow: hidden;
     }
     .confidence-fill {
       height: 100%;
       border-radius: 100px;
-      background: linear-gradient(90deg, #3182ce, #805ad5);
-      transition: width 1s cubic-bezier(.25,.8,.25,1);
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+      transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .threshold-note {
       font-size: 11px;
-      color: var(--muted);
-      margin-top: 8px;
+      color: var(--text-tertiary);
+      margin-top: 10px;
+      line-height: 1.4;
     }
 
     /* ── Chart ───────────────────────────────────────────────────────────── */
     .chart-card {
-      background: var(--surface);
+      background: var(--bg-glass);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 8px 0;
-      margin-bottom: 32px;
+      margin-bottom: 40px;
       overflow: hidden;
+      transition: border-color .3s;
     }
-    #chartContainer { width: 100%; height: 480px; }
+    .chart-card:hover { border-color: var(--border-hover); }
+    #chartContainer { width: 100%; height: 460px; }
 
     /* ── Download row ────────────────────────────────────────────────────── */
     .dl-row { display: flex; justify-content: flex-end; }
@@ -283,50 +360,65 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: var(--surface2);
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--border);
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
+      color: var(--text-secondary);
+      font-family: inherit;
       font-size: 13px;
       font-weight: 500;
       padding: 10px 20px;
-      border-radius: var(--radius);
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      transition: background .2s, border-color .2s;
+      transition: all .25s;
     }
-    #dlBtn:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+    #dlBtn:hover {
+      background: var(--bg-glass2);
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
 
     /* ── Footer ──────────────────────────────────────────────────────────── */
     footer {
+      position: relative;
+      z-index: 1;
       text-align: center;
-      color: var(--muted);
+      color: var(--text-tertiary);
       font-size: 12px;
-      padding: 24px;
-      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      font-weight: 400;
+      letter-spacing: -0.01em;
     }
+    footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+    footer a:hover { color: var(--text); }
 
     /* ── Responsive ──────────────────────────────────────────────────────── */
     @media (max-width: 600px) {
-      .search-wrap { flex-direction: column; }
-      #tickerInput { max-width: 100%; }
+      .search-wrap { flex-direction: column; align-items: stretch; }
+      #tickerInput { width: 100%; }
+      .prediction-card { gap: 20px; }
     }
   </style>
 </head>
 <body>
 
   <header>
-    <div class="badge">ML-Powered</div>
-    <h1>Stock Analysis Dashboard</h1>
-    <p class="subtitle">Real-time technical indicators and machine learning–based next-day trend prediction for any publicly traded stock.</p>
+    <div class="eyebrow">ML-Powered</div>
+    <h1>Stock <span>Analysis</span><br>Dashboard</h1>
+    <p class="subtitle">Real-time technical indicators and machine learning predictions for any publicly traded stock.</p>
   </header>
 
   <main>
     <!-- Search -->
     <div class="search-wrap">
-      <input id="tickerInput" type="text" placeholder="Enter ticker: AAPL, MSFT, TSLA…" maxlength="10" value="AAPL" autocomplete="off" />
+      <input id="tickerInput" type="text" placeholder="Enter ticker…" maxlength="10" value="AAPL" autocomplete="off" />
       <button id="analyzeBtn" onclick="runAnalysis()">
         <span class="spinner" id="spinner"></span>
-        <span id="btnText">⚡ Analyze</span>
+        <span id="btnText">Analyze</span>
       </button>
     </div>
 
@@ -337,11 +429,11 @@
     <div id="results">
 
       <!-- Stats -->
-      <p class="section-title">Performance Summary</p>
+      <p class="section-label">Overview</p>
       <div class="stats-grid">
         <div class="card">
           <div class="card-label">Current Price</div>
-          <div class="card-value accent" id="statPrice">—</div>
+          <div class="card-value blue" id="statPrice">—</div>
           <div class="card-sub">USD</div>
         </div>
         <div class="card">
@@ -350,59 +442,63 @@
           <div class="card-sub">Since Jan 2018</div>
         </div>
         <div class="card">
-          <div class="card-label">Avg Daily Volatility</div>
+          <div class="card-label">Volatility</div>
           <div class="card-value purple" id="statVol">—</div>
-          <div class="card-sub">Std dev of daily returns (%)</div>
+          <div class="card-sub">Daily std deviation (%)</div>
         </div>
         <div class="card">
           <div class="card-label">Model Accuracy</div>
-          <div class="card-value accent" id="statAcc">—</div>
-          <div class="card-sub">On held-out historical data</div>
+          <div class="card-value teal" id="statAcc">—</div>
+          <div class="card-sub">Held-out test data</div>
         </div>
       </div>
 
       <!-- Prediction -->
-      <p class="section-title">ML Prediction — Next Day</p>
+      <p class="section-label">Prediction</p>
       <div class="prediction-card">
-        <div class="pred-icon" id="predIcon">—</div>
-        <div>
-          <div class="pred-label">Predicted Direction</div>
+        <div class="pred-icon" id="predIconWrap">
+          <span id="predIcon">—</span>
+        </div>
+        <div class="pred-info">
+          <div class="pred-label">Next Day Direction</div>
           <div class="pred-value" id="predValue">—</div>
         </div>
-        <div class="confidence-bar-wrap">
-          <div class="confidence-label">
+        <div class="confidence-wrap">
+          <div class="confidence-header">
             <span>Confidence</span>
-            <span id="confLabel">0%</span>
+            <span class="pct" id="confLabel">0%</span>
           </div>
-          <div class="confidence-bar">
+          <div class="confidence-track">
             <div class="confidence-fill" id="confFill" style="width:0%"></div>
           </div>
-          <p class="threshold-note">Model predicts UP only when confidence &gt; 60% to reduce false signals.</p>
+          <p class="threshold-note">Predicts UP only when confidence exceeds 60%.</p>
         </div>
       </div>
 
       <!-- Chart -->
-      <p class="section-title">Price Chart &amp; Indicators</p>
+      <p class="section-label">Price Chart</p>
       <div class="chart-card">
         <div id="chartContainer"></div>
       </div>
 
       <!-- Download -->
       <div class="dl-row">
-        <button id="dlBtn" onclick="downloadCSV()">📥 Download Data CSV</button>
+        <button id="dlBtn" onclick="downloadCSV()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1v9m0 0L4 7m3 3l3-3M1 12h12"/></svg>
+          Export CSV
+        </button>
       </div>
 
     </div><!-- /results -->
   </main>
 
   <footer>
-    Stock Analysis Dashboard · Powered by ML &amp; yfinance · Not financial advice.
+    Stock Analysis Dashboard · Not financial advice
   </footer>
 
   <script>
     let lastData = null;
 
-    // Allow Enter key
     document.getElementById('tickerInput').addEventListener('keydown', e => {
       if (e.key === 'Enter') runAnalysis();
     });
@@ -420,14 +516,14 @@
         const data = await res.json();
 
         if (!res.ok) {
-          showError(data.detail || 'An error occurred. Please try again.');
+          showError(data.detail || 'Something went wrong. Please try again.');
           return;
         }
 
         lastData = data;
         renderResults(data);
       } catch (err) {
-        showError('Network error — could not reach the analysis API.');
+        showError('Unable to reach the analysis API. Check your connection.');
       } finally {
         setLoading(false);
       }
@@ -435,7 +531,8 @@
 
     function renderResults(d) {
       // Stats
-      document.getElementById('statPrice').textContent = `$${d.current_price.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+      document.getElementById('statPrice').textContent =
+        `$${d.current_price.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
       const ret = d.total_return;
       const retEl = document.getElementById('statReturn');
@@ -443,20 +540,26 @@
       retEl.className = `card-value ${ret >= 0 ? 'green' : 'red'}`;
 
       document.getElementById('statVol').textContent = `${d.volatility.toFixed(2)}%`;
-      document.getElementById('statAcc').textContent = d.accuracy !== null ? `${d.accuracy.toFixed(2)}%` : 'N/A';
+      document.getElementById('statAcc').textContent =
+        d.accuracy !== null ? `${d.accuracy.toFixed(1)}%` : '—';
 
       // Prediction
       const up = d.prediction === 'UP';
-      document.getElementById('predIcon').textContent = up ? '📈' : '📉';
+      document.getElementById('predIcon').textContent = up ? '↑' : '↓';
+      const iconWrap = document.getElementById('predIconWrap');
+      iconWrap.className = `pred-icon ${up ? 'up' : 'down'}`;
+
       const pv = document.getElementById('predValue');
-      pv.textContent = up ? '▲ UP' : '▼ DOWN';
+      pv.textContent = up ? 'Bullish' : 'Bearish';
       pv.className = `pred-value ${up ? 'up' : 'down'}`;
 
       const pct = (d.confidence * 100).toFixed(1);
       document.getElementById('confLabel').textContent = `${pct}%`;
-      setTimeout(() => {
-        document.getElementById('confFill').style.width = `${pct}%`;
-      }, 80);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.getElementById('confFill').style.width = `${pct}%`;
+        });
+      });
 
       // Chart
       renderChart(d);
@@ -464,26 +567,22 @@
       // Show
       const resultsEl = document.getElementById('results');
       resultsEl.style.display = 'block';
-      // Re-trigger animation
       resultsEl.style.animation = 'none';
-      resultsEl.offsetHeight; // reflow
+      resultsEl.offsetHeight;
       resultsEl.style.animation = '';
     }
 
     function renderChart(d) {
-      const PLOTLY_BG   = '#0f1629';
-      const PLOTLY_GRID = 'rgba(99,179,237,0.08)';
-
       const candlestick = {
         type: 'candlestick',
         x: d.dates,
-        open:  d.open,
-        high:  d.high,
-        low:   d.low,
+        open: d.open,
+        high: d.high,
+        low: d.low,
         close: d.close,
         name: d.ticker,
-        increasing: { line: { color: '#48bb78', width: 1 }, fillcolor: '#48bb78' },
-        decreasing: { line: { color: '#fc8181', width: 1 }, fillcolor: '#fc8181' },
+        increasing: { line: { color: '#30d158', width: 1 }, fillcolor: 'rgba(48,209,88,0.8)' },
+        decreasing: { line: { color: '#ff453a', width: 1 }, fillcolor: 'rgba(255,69,58,0.8)' },
       };
 
       const sma10 = {
@@ -491,7 +590,7 @@
         x: d.dates,
         y: d.ma10,
         name: 'SMA 10',
-        line: { color: '#63b3ed', width: 1.5 },
+        line: { color: 'rgba(10,132,255,0.7)', width: 1.5 },
         hovertemplate: 'SMA 10: $%{y:.2f}<extra></extra>',
       };
 
@@ -500,37 +599,37 @@
         x: d.dates,
         y: d.ema20,
         name: 'EMA 20',
-        line: { color: '#9f7aea', width: 1.5, dash: 'dot' },
+        line: { color: 'rgba(191,90,242,0.6)', width: 1.5, dash: 'dot' },
         hovertemplate: 'EMA 20: $%{y:.2f}<extra></extra>',
       };
 
       const layout = {
-        paper_bgcolor: PLOTLY_BG,
-        plot_bgcolor:  PLOTLY_BG,
-        font: { family: 'Inter, sans-serif', color: '#a0aec0', size: 12 },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: { family: 'Inter, -apple-system, sans-serif', color: 'rgba(255,255,255,0.45)', size: 11 },
         xaxis: {
           rangeslider: { visible: false },
-          gridcolor: PLOTLY_GRID,
-          linecolor: PLOTLY_GRID,
-          tickfont: { size: 11 },
+          gridcolor: 'rgba(255,255,255,0.04)',
+          linecolor: 'rgba(255,255,255,0.04)',
+          tickfont: { size: 10 },
           type: 'date',
         },
         yaxis: {
-          gridcolor: PLOTLY_GRID,
-          linecolor: PLOTLY_GRID,
+          gridcolor: 'rgba(255,255,255,0.04)',
+          linecolor: 'rgba(255,255,255,0.04)',
           tickprefix: '$',
-          tickfont: { size: 11 },
+          tickfont: { size: 10 },
           side: 'right',
         },
         legend: {
-          bgcolor: 'rgba(15,22,41,0.8)',
-          bordercolor: 'rgba(99,179,237,0.15)',
+          bgcolor: 'rgba(28,28,30,0.8)',
+          bordercolor: 'rgba(255,255,255,0.06)',
           borderwidth: 1,
-          font: { size: 12 },
+          font: { size: 11, color: 'rgba(255,255,255,0.6)' },
           x: 0.01, y: 0.99,
           xanchor: 'left', yanchor: 'top',
         },
-        margin: { l: 16, r: 72, t: 20, b: 40 },
+        margin: { l: 12, r: 64, t: 16, b: 36 },
         hovermode: 'x unified',
       };
 
@@ -545,7 +644,7 @@
     function downloadCSV() {
       if (!lastData) return;
       const d = lastData;
-      const rows = [['Date','Open','High','Low','Close','MA10','EMA20']];
+      const rows = [['Date', 'Open', 'High', 'Low', 'Close', 'MA10', 'EMA20']];
       for (let i = 0; i < d.dates.length; i++) {
         rows.push([d.dates[i], d.open[i], d.high[i], d.low[i], d.close[i], d.ma10[i], d.ema20[i]]);
       }
@@ -553,18 +652,19 @@
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = Object.assign(document.createElement('a'), { href: url, download: `${d.ticker}_analysis.csv` });
-      a.click(); URL.revokeObjectURL(url);
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     function setLoading(on) {
       document.getElementById('spinner').style.display = on ? 'block' : 'none';
-      document.getElementById('btnText').textContent = on ? 'Analyzing…' : '⚡ Analyze';
+      document.getElementById('btnText').textContent = on ? 'Analyzing…' : 'Analyze';
       document.getElementById('analyzeBtn').disabled = on;
     }
 
     function showError(msg) {
       const el = document.getElementById('errorBanner');
-      el.textContent = `⚠️ ${msg}`;
+      el.textContent = msg;
       el.style.display = 'block';
     }
 
