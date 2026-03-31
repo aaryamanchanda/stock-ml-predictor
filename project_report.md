@@ -7,6 +7,7 @@
 **Live Demo:** [stock-ml-predictor.vercel.app](https://stock-ml-predictor.vercel.app)
 
 **Report Date:** March 2026
+
 **Language:** Python (100%)
 
 ---
