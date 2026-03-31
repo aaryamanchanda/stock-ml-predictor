@@ -13,7 +13,7 @@
 | Field | Details |
 |---|---|
 | Project Title | ML-Based Stock Trend Prediction System |
-| Developer | Aaryaman Chanda |
+| Developer | Aarya Manchanda |
 | Repository | github.com/aaryamanchanda/stock-ml-predictor |
 | Language | Python (100%) |
 | Purpose | Educational / Internship Portfolio Demonstration |
