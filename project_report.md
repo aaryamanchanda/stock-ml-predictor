@@ -1,8 +1,11 @@
 # ML-Based Stock Trend Prediction System — Project Report
 
-**Developer:** Aaryaman Chanda
+**Developer:** Aarya Manchanda
+
 **Repository:** [github.com/aaryamanchanda/stock-ml-predictor](https://github.com/aaryamanchanda/stock-ml-predictor)
+
 **Live Demo:** [stock-ml-predictor.vercel.app](https://stock-ml-predictor.vercel.app)
+
 **Report Date:** March 2026
 **Language:** Python (100%)
 
